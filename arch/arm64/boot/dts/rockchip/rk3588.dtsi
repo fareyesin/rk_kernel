@@ -740,7 +740,7 @@
 	my_gpio_irq: my-gpio-irq {
     compatible = "my,gpio-irq";
     interrupt-parent = <&gpio3>;
-    interrupts = <RK_PC6 IRQ_TYPE_EDGE_RISING>;
+    interrupts = <RK_PC6 IRQ_TYPE_EDGE_FALLING>;
    };
 
 	sata1: sata@fe220000 {

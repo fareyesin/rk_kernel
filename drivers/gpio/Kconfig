@@ -33,7 +33,6 @@ config GPIOLIB_FASTPATH_LIMIT
 	  You shouldn't need to change this unless you really need to
 	  optimize either stack space or performance. Change this carefully
 	  since setting an incorrect value could cause stack corruption.
-
 config OF_GPIO
 	def_bool y
 	depends on OF
