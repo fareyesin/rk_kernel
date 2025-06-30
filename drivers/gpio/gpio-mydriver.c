@@ -250,37 +250,66 @@ extern void nvme_exit(void);
 
 extern void __exit nvme_core_exit(void);
 extern int __init nvme_core_init(void);
-extern void nvme_remove(struct pci_dev *pdev);
+
 
 //extern int cpci_hp_start(void);
 //6.30
 struct pci_dev *pdev = NULL;
 
-struct pci_host_bridge *bridge;
 
+#if 1
+extern void nvme_remove(struct pci_dev *pdev);
+extern int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id);
+
+static const struct pci_device_id nvme_id_table[] = {
+    //{ PCI_DEVICE(0x144d, 0xa821), .driver_data = NVME_QUIRK_SAMSUNG },  // 三星NVMe SSD
+    { PCI_DEVICE_CLASS(PCI_CLASS_STORAGE_EXPRESS, 0xffffff) },          // 通用NVMe设备
+    { 0 }  // 结束标记
+};
 
 static int unload_thread_func(void *data)
 {
-	// unsigned int devfn;
-	
+	int ret = -ENOMEM,i=0;
 	printk("LJZ[DRIVER GPIO] in thread\r\n");
-  #if 0
 	while(1)
 	{    
 		printk("LJZ[DRIVER GPIO] in loop\r\n");
-		msleep(5000); // 休眠5秒
+		for(i=0;i<6;i++)
+		{
+          msleep(5000); // 休眠5秒
+		  printk("delay %dth\r\n",i);
+		}
+		
 		while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
 		// 仅处理 NVMe 设备（Class Code: 0x010802）
 			printk("LJZ :ALL Found device Vendor=%04x\r\n",pdev->vendor);
 			if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
 				printk(KERN_INFO "LJZ:Found NVMe device: Vendor=%04x Device=%04x\n",
 					pdev->vendor, pdev->device);
-					  for (devfn = 0; devfn < 256; devfn += 8) {
-							nr_devs = pci_scan_slot(pdev->bus, devfn);
-					  }
+                nvme_remove(pdev);
+
+				ret=nvme_probe(pdev,nvme_id_table);
+				if(ret<0)
+				{
+					printk("LJZ :nvme_probe failed\r\n");
+					break;
+				}
+					
 			}
+	    }
 	}
-#endif	
+	return 0; 
+}
+
+#else
+
+struct pci_host_bridge *bridge;
+static int unload_thread_func(void *data)
+{
+	 unsigned int devfn;
+	
+	printk("LJZ[DRIVER GPIO] in thread\r\n");
+
 	bridge = pci_alloc_host_bridge(0); //扫描桥接芯片的根设备
 		if (!bridge)
 		{
@@ -291,16 +320,15 @@ static int unload_thread_func(void *data)
 		{
 			printk("LJZ:pci_host_probe begain\r\n");
 			// pci_host_probe(bridge);
-			// for (devfn = 0; devfn < 256; devfn += 8) {
-		    //  pci_scan_slot(bridge->bus, devfn);
-
+			for (devfn = 0; devfn < 256; devfn += 8) 
+		    	pci_scan_slot(bridge->bus, devfn);
 			printk("LJZ:pci_host_probe end\r\n");
 			msleep(5000); // 休眠5秒
-			
 		}
     return 0; 
 }
 
+#endif
 
 static const struct of_device_id my_gpio_of_match[] = {
 	{ .compatible = "ljz_ssdirq"},
@@ -334,8 +362,6 @@ static struct platform_driver my_gpio_driver __refdata = {
 };
 
 module_platform_driver(my_gpio_driver);
-
-
 // static const struct platform_driver my_gpio_driver = {
 // 	.probe = my_gpio_probe,
 // 	.remove = my_gpio_remove,
@@ -344,8 +370,8 @@ module_platform_driver(my_gpio_driver);
 // 		.of_match_table = my_gpio_of_match,
 // 	},
 // };
-
 MODULE_AUTHOR("BIWIN-LJZ");
 MODULE_DESCRIPTION("GPIO IRQ Driver for MINSSD");
 MODULE_LICENSE("GPL");
+
 #endif

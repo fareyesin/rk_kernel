@@ -2909,8 +2909,9 @@ out_free_dev:
 	kfree(dev);
 	return ERR_PTR(ret);
 }
-
-static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+//lja modify
+//static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	struct nvme_dev *dev;
 	int result = -ENOMEM;
@@ -3016,6 +3017,7 @@ void nvme_remove(struct pci_dev *pdev) //ljz notice
 	nvme_release_prp_pools(dev);
 	nvme_dev_unmap(dev);
 	nvme_uninit_ctrl(&dev->ctrl);
+	printk("LJZ:nvme_remove sucssess\r\n ");
 }
 
 //ljz add
