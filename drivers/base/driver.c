@@ -166,13 +166,21 @@ int driver_register(struct device_driver *drv)
 		pr_err("Error: Driver '%s' is already registered, "
 			"aborting...\n", drv->name);
 		return -EBUSY;
+	}else
+	{
+		//printk("LJZ: [DRIVER_TRACKING]Driver '%s' have been found\r\n", drv->name);
 	}
-
+	
 	ret = bus_add_driver(drv);
 	if (ret)
-		return ret;
+	{
+		//printk("LJZ:  '%s' bus_add_driver failed\r\n", drv->name);
+        return ret;
+	}
+		
 	ret = driver_add_groups(drv, drv->groups);
 	if (ret) {
+		//printk("LJZ: '%s' driver_add_groups failed\r\n", drv->name);
 		bus_remove_driver(drv);
 		return ret;
 	}

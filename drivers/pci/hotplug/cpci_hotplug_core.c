@@ -588,7 +588,7 @@ cpci_hp_start(void)
 {
 	static int first = 1;
 	int status;
-
+    printk("LJZDBUG cpci_hp_start\r\n");
 	dbg("%s - enter", __func__);
 	if (!controller)
 		return -ENODEV;
@@ -617,6 +617,7 @@ cpci_hp_start(void)
 		controller->ops->enable_irq();
 	}
 	dbg("%s - exit", __func__);
+	 printk("LJZDBUG cpci_hp_start end\r\n");
 	return 0;
 }
 EXPORT_SYMBOL_GPL(cpci_hp_start);
@@ -640,5 +641,9 @@ int __init
 cpci_hotplug_init(int debug)
 {
 	cpci_debug = debug;
+	//ljzadd
+	printk("LJZ DEBUG :hotplug_init end\r\n");
+	//cpci_hp_start();
+	//ljzaddend
 	return 0;
 }

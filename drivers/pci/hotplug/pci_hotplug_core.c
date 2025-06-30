@@ -32,6 +32,7 @@
 #include "../pci.h"
 #include "cpci_hotplug.h"
 
+
 #define MY_NAME	"pci_hotplug"
 
 #define dbg(fmt, arg...) do { if (debug) printk(KERN_DEBUG "%s: %s: " fmt, MY_NAME, __func__, ## arg); } while (0)
@@ -558,16 +559,20 @@ void pci_hp_destroy(struct hotplug_slot *slot)
 }
 EXPORT_SYMBOL_GPL(pci_hp_destroy);
 
+extern int cpci_hp_start(void);
+
 static int __init pci_hotplug_init(void)
 {
 	int result;
-
+    printk("LJZ[HOT PCIE]:init begain\r\n");
+	//ljzadd
+    //cpci_hp_start();
 	result = cpci_hotplug_init(debug);
 	if (result) {
 		err("cpci_hotplug_init with error %d\n", result);
 		return result;
 	}
-
+    printk("LJZ[HOT PCIE]:init end\r\n");
 	return result;
 }
 device_initcall(pci_hotplug_init);

@@ -184,7 +184,7 @@ static int pciehp_probe(struct pcie_device *dev)
 {
 	int rc;
 	struct controller *ctrl;
-
+    printk("LJZ [CONFIG_HOTPLUG_PCI_PCIE]pciehp_probe\r\n");
 	/* If this is not a "hotplug" service, we have no business here. */
 	if (dev->service != PCIE_PORT_SERVICE_HP)
 		return -ENODEV;

@@ -205,6 +205,8 @@ static int rp_gpio_probe(struct platform_device *pdev) {
 		return -ENOMEM;
 	}
 
+    printk("LJZ:[RP_GPIO_TRACKING]->  1.allocate memory\r\n");
+
 	gpio_data->gpio_dts_num = of_get_child_count(np);
         printk("rp_gpio prepare build %d gpio\n",gpio_data->gpio_dts_num);
 
@@ -214,7 +216,7 @@ static int rp_gpio_probe(struct platform_device *pdev) {
 
 	/* create node */
 	root_entry_gpio = proc_mkdir("rp_gpio", NULL);
-	
+	printk("LJZ:[RP_GPIO_TRACKING]->  2.create noder\n");
 	for_each_child_of_node(np, child_np)
 	{
 		/* parse dts */
@@ -230,7 +232,7 @@ static int rp_gpio_probe(struct platform_device *pdev) {
 
 		printk("rp_gpio request %s\n",gpio_data->rp_gpio_num[gpio_cnt].gpio_name);
 
-		
+		printk("LJZ:[RP_GPIO_TRACKING]->  3.%d\n",gpio_data->rp_gpio_num[gpio_cnt].gpio_function);
 		switch(gpio_data->rp_gpio_num[gpio_cnt].gpio_function) {
 			case GPIO_FUNCTION_INPUT :		/* init input gpio */
 				ret = gpio_request(gpio_data->rp_gpio_num[gpio_cnt].gpio_num, "gpio_num");
@@ -278,7 +280,7 @@ static int rp_gpio_probe(struct platform_device *pdev) {
 		proc_create(gpio_name_num, 0666 , root_entry_gpio , &gpio_ops);
 		gpio_cnt++;
 	}
-	
+	printk("LJZ:[RP_GPIO_TRACKING]->  4.begain init timer \n");
 	if (gpio_in_cnt > 0)
 	{
 		/* init timer */
@@ -314,8 +316,8 @@ static int rp_gpio_probe(struct platform_device *pdev) {
 	
 	gpio_wq = create_singlethread_workqueue("gpio_wq");
 	INIT_WORK(&gpio_work, gpio_work_func);
-	
 	platform_set_drvdata(pdev, gpio_data);	
+		printk("LJZ:[RP_GPIO_TRACKING]->  5.end\n");
 	return 0;
 }
 

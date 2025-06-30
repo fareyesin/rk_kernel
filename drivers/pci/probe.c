@@ -2620,7 +2620,8 @@ int pci_scan_slot(struct pci_bus *bus, int devfn)
 	/* Only one slot has PCIe device */
 	if (bus->self && nr)
 		pcie_aspm_init_link_state(bus->self);
-
+    
+	printk("LJZ solt add \r\n");
 	return nr;
 }
 EXPORT_SYMBOL(pci_scan_slot);
@@ -2900,6 +2901,7 @@ static unsigned int pci_scan_child_bus_extend(struct pci_bus *bus,
 			 */
 			buses = available_buses / hotplug_bridges;
 			buses = min(buses, available_buses - used_buses + 1);
+			//buses = min(buses, available_buspci_scan_child_bus_extends - used_buses + 1);
 		}
 
 		cmax = max;

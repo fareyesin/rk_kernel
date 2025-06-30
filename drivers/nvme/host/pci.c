@@ -2946,6 +2946,8 @@ out_uninit_ctrl:
 	nvme_uninit_ctrl(&dev->ctrl);
 	return result;
 }
+//ljz add
+//EXPORT_SYMBOL(nvme_probe);
 
 static void nvme_reset_prepare(struct pci_dev *pdev)
 {
@@ -2975,12 +2977,23 @@ static void nvme_shutdown(struct pci_dev *pdev)
 	nvme_disable_prepare_reset(dev, true);
 }
 
+//ljz add 
+// void nvme_delete_test(void)
+// {
+
+
+// }
+
+
+
 /*
  * The driver's remove may be called on a device in a partially initialized
  * state. This function must not have any dependencies on the device state in
  * order to proceed.
  */
-static void nvme_remove(struct pci_dev *pdev)
+
+//ljz modify static
+void nvme_remove(struct pci_dev *pdev) //ljz notice
 {
 	struct nvme_dev *dev = pci_get_drvdata(pdev);
 
@@ -3005,6 +3018,9 @@ static void nvme_remove(struct pci_dev *pdev)
 	nvme_uninit_ctrl(&dev->ctrl);
 }
 
+//ljz add
+//EXPORT_SYMBOL(nvme_remove);
+
 #ifdef CONFIG_PM_SLEEP
 static int nvme_get_power_state(struct nvme_ctrl *ctrl, u32 *ps)
 {
@@ -3027,13 +3043,13 @@ static int nvme_resume(struct device *dev)
 	return 0;
 }
 
+
 static int nvme_suspend(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct nvme_dev *ndev = pci_get_drvdata(pdev);
 	struct nvme_ctrl *ctrl = &ndev->ctrl;
 	int ret = -EBUSY;
-
 	ndev->last_ps = U32_MAX;
 
 	/*
@@ -3258,12 +3274,15 @@ static const struct pci_device_id nvme_id_table[] = {
 				NVME_QUIRK_128_BYTES_SQES |
 				NVME_QUIRK_SHARED_TAGS |
 				NVME_QUIRK_SKIP_CID_GEN },
-	{ PCI_DEVICE_CLASS(PCI_CLASS_STORAGE_EXPRESS, 0xffffff) },
+	{ PCI_DEVICE_CLASS(PCI_CLASS_STORAGE_EXPRESS, 0xffffff) }, //通用设备
 	{ 0, }
 };
 MODULE_DEVICE_TABLE(pci, nvme_id_table);
 
-static struct pci_driver nvme_driver = {
+
+//ljz modify 
+//static struct pci_driver nvme_driver
+struct pci_driver nvme_driver = {
 	.name		= "nvme",
 	.id_table	= nvme_id_table,
 	.probe		= nvme_probe,
@@ -3278,18 +3297,23 @@ static struct pci_driver nvme_driver = {
 	.err_handler	= &nvme_err_handler,
 };
 
-static int __init nvme_init(void)
+//ljz add
+//EXPORT_SYMBOL(nvme_driver);
+
+//static ljz
+ int __init nvme_init(void)
 {
+	printk("LJZ: [PCI_NVME]*******INIT********\r\n");
 	BUILD_BUG_ON(sizeof(struct nvme_create_cq) != 64);
 	BUILD_BUG_ON(sizeof(struct nvme_create_sq) != 64);
 	BUILD_BUG_ON(sizeof(struct nvme_delete_queue) != 64);
 	BUILD_BUG_ON(IRQ_AFFINITY_MAX_SETS < 2);
-
 	return pci_register_driver(&nvme_driver);
 }
 
-static void __exit nvme_exit(void)
+ void __exit nvme_exit(void)
 {
+	printk("LJZ: [PCI_NVME]*******exit********\r\n");
 	pci_unregister_driver(&nvme_driver);
 	flush_workqueue(nvme_wq);
 }

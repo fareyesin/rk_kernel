@@ -20,15 +20,25 @@
 #include <linux/nvme_ioctl.h>
 #include <linux/pm_qos.h>
 #include <asm/unaligned.h>
-
 #include "nvme.h"
 #include "fabrics.h"
+#include <linux/timer.h>
 
 #define CREATE_TRACE_POINTS
 #include "trace.h"
 
 #define NVME_MINORS		(1U << MINORBITS)
 
+//ljzadd
+#define LJZDEBUG 0
+
+#if LJZDEBUG
+#define TIMR_HOT_PLUG 5000 //ms
+extern int nvme_init(void);
+extern void nvme_exit(void);
+static struct timer_list nvme_reload_timer;
+#endif
+//ljzadd end
 unsigned int admin_timeout = 60;
 module_param(admin_timeout, uint, 0644);
 MODULE_PARM_DESC(admin_timeout, "timeout in seconds for admin commands");
@@ -51,7 +61,6 @@ static unsigned long default_ps_max_latency_us = 100000;
 module_param(default_ps_max_latency_us, ulong, 0644);
 MODULE_PARM_DESC(default_ps_max_latency_us,
 		 "max power saving latency for new devices; use PM QOS to change per device");
-
 static bool force_apst;
 module_param(force_apst, bool, 0644);
 MODULE_PARM_DESC(force_apst, "allow APST for newly enumerated devices even if quirked off");
@@ -82,6 +91,11 @@ EXPORT_SYMBOL_GPL(nvme_delete_wq);
 
 static LIST_HEAD(nvme_subsystems);
 static DEFINE_MUTEX(nvme_subsystems_lock);
+//ljz add
+// static LIST_HEAD(global_ctrl_list);
+// static DEFINE_MUTEX(global_ctrl_lock);
+
+//end
 
 static DEFINE_IDA(nvme_instance_ida);
 static dev_t nvme_chr_devt;
@@ -101,6 +115,8 @@ static void nvme_update_bdev_size(struct gendisk *disk)
 		bdput(bdev);
 	}
 }
+
+
 
 /*
  * Prepare a queue for teardown.
@@ -179,6 +195,12 @@ static void nvme_do_delete_ctrl(struct nvme_ctrl *ctrl)
 
 	flush_work(&ctrl->reset_work);
 	nvme_stop_ctrl(ctrl);
+	//ljz add
+	// mutex_lock(&global_ctrl_lock);	
+	// INIT_LIST_HEAD(&ctrl->global_ctrl_entry);  
+	// list_del_init(&ctrl->global_ctrl_entry);
+	// mutex_unlock(&global_ctrl_lock);
+	//add end
 	nvme_remove_namespaces(ctrl);
 	ctrl->ops->delete_ctrl(ctrl);
 	nvme_uninit_ctrl(ctrl);
@@ -4599,7 +4621,7 @@ int nvme_init_ctrl(struct nvme_ctrl *ctrl, struct device *dev,
 	INIT_WORK(&ctrl->scan_work, nvme_scan_work);
 	INIT_WORK(&ctrl->async_event_work, nvme_async_event_work);
 	INIT_WORK(&ctrl->fw_act_work, nvme_fw_act_work);
-	INIT_WORK(&ctrl->delete_work, nvme_delete_ctrl_work);
+	INIT_WORK(&ctrl->delete_work, nvme_delete_ctrl_work); //ljz notice
 	init_waitqueue_head(&ctrl->state_wq);
 
 	INIT_DELAYED_WORK(&ctrl->ka_work, nvme_keep_alive_work);
@@ -4767,6 +4789,8 @@ void nvme_sync_io_queues(struct nvme_ctrl *ctrl)
 }
 EXPORT_SYMBOL_GPL(nvme_sync_io_queues);
 
+
+//同步 NVMe 控制器的所有队列
 void nvme_sync_queues(struct nvme_ctrl *ctrl)
 {
 	nvme_sync_io_queues(ctrl);
@@ -4810,10 +4834,30 @@ static inline void _nvme_check_size(void)
 }
 
 
-static int __init nvme_core_init(void)
+
+//ljz add
+#if LJZDEBUG
+static void nvme_reload_timer_callback(struct timer_list *t)
+{
+    pr_info("Reloading NVMe driver...\n");
+
+    // 1. 
+    nvme_exit();
+    // 2. 
+    nvme_init();
+	    // 3. 
+    mod_timer(&nvme_reload_timer, jiffies + msecs_to_jiffies(20000));
+}
+#endif
+//ljz addend
+
+
+//ljz modify
+
+int __init nvme_core_init(void)
 {
 	int result = -ENOMEM;
-
+    printk("LJZ:[NVME] core init 1\r\n");
 	_nvme_check_size();
 
 	nvme_wq = alloc_workqueue("nvme-wq",
@@ -4831,11 +4875,11 @@ static int __init nvme_core_init(void)
 	if (!nvme_delete_wq)
 		goto destroy_reset_wq;
 
-	result = alloc_chrdev_region(&nvme_chr_devt, 0, NVME_MINORS, "nvme");
+	result = alloc_chrdev_region(&nvme_chr_devt, 0, NVME_MINORS, "nvme"); 
 	if (result < 0)
 		goto destroy_delete_wq;
-
-	nvme_class = class_create(THIS_MODULE, "nvme");
+     printk("LJZ:[NVME] 2\r\n");
+	nvme_class = class_create(THIS_MODULE, "nvme"); 
 	if (IS_ERR(nvme_class)) {
 		result = PTR_ERR(nvme_class);
 		goto unregister_chrdev;
@@ -4847,6 +4891,16 @@ static int __init nvme_core_init(void)
 		result = PTR_ERR(nvme_subsys_class);
 		goto destroy_class;
 	}
+
+//ljz add	
+#if LJZDEBUG
+	//result = nvme_init();
+printk("LJZ:[NVME] core init :nvme_init ret =%d\r\n",result);
+timer_setup(&nvme_reload_timer, nvme_reload_timer_callback, 0);
+    mod_timer(&nvme_reload_timer, jiffies + msecs_to_jiffies(TIMR_HOT_PLUG));
+#endif
+
+//ljz add end
 	return 0;
 
 destroy_class:
@@ -4863,7 +4917,11 @@ out:
 	return result;
 }
 
-static void __exit nvme_core_exit(void)
+//ljz
+EXPORT_SYMBOL(nvme_core_init);
+
+
+void __exit nvme_core_exit(void)
 {
 	class_destroy(nvme_subsys_class);
 	class_destroy(nvme_class);
@@ -4872,9 +4930,19 @@ static void __exit nvme_core_exit(void)
 	destroy_workqueue(nvme_reset_wq);
 	destroy_workqueue(nvme_wq);
 	ida_destroy(&nvme_instance_ida);
+
+#if LJZDEBUG
+	del_timer_sync(&nvme_reload_timer);
+    nvme_exit();
+    printk("LJZ:[NVME] :ext NVMe core exit\n");
+#endif
+
 }
+//ljz
+EXPORT_SYMBOL(nvme_core_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.0");
 module_init(nvme_core_init);
 module_exit(nvme_core_exit);
+
