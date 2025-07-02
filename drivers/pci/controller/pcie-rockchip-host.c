@@ -1148,8 +1148,11 @@ static const struct attribute_group pcie_attr_group = {
 	.attrs = pcie_attrs,
 };
 
-static int rockchip_pcie_probe(struct platform_device *pdev)
+// ljz modify
+//static int rockchip_pcie_probe(struct platform_device *pdev)
+int rockchip_pcie_probe(struct platform_device *pdev)
 {
+	#if 1 //ljz notice 
 	struct rockchip_pcie *rockchip;
 	struct device *dev = &pdev->dev;
 	struct pci_host_bridge *bridge;
@@ -1180,7 +1183,7 @@ static int rockchip_pcie_probe(struct platform_device *pdev)
 
 	err = rockchip_pcie_set_vpcie(rockchip);
 	if (err) {
-		dev_err(dev, "failed to set vpcie regulator\n");
+		dev_err(dev, "failed to set vpcie regurockchip_pcie_probelator\n");
 		goto err_set_vpcie;
 	}
 
@@ -1216,6 +1219,7 @@ static int rockchip_pcie_probe(struct platform_device *pdev)
 		rockchip->dma_obj->start_dma_func = rk_pcie_start_dma_rk3399;
 		rockchip->dma_obj->config_dma_func = rk_pcie_config_dma_rk3399;
 	}
+	#endif
 
 	return 0;
 
@@ -1237,7 +1241,9 @@ err_set_vpcie:
 	return err;
 }
 
-static int rockchip_pcie_remove(struct platform_device *pdev)
+//ljz modify
+//static int rockchip_pcie_remove(struct platform_device *pdev)
+ int rockchip_pcie_remove(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct rockchip_pcie *rockchip = dev_get_drvdata(dev);
@@ -1298,8 +1304,8 @@ static const struct of_device_id rockchip_pcie_of_match[] = {
 	{}
 };
 MODULE_DEVICE_TABLE(of, rockchip_pcie_of_match);
-
-static struct platform_driver rockchip_pcie_driver = {
+//jz modify static
+struct platform_driver rockchip_pcie_driver = {
 	.driver = {
 		.name = "rockchip-pcie",
 		.of_match_table = rockchip_pcie_of_match,
@@ -1308,6 +1314,7 @@ static struct platform_driver rockchip_pcie_driver = {
 	.probe = rockchip_pcie_probe,
 	.remove = rockchip_pcie_remove,
 };
+
 module_platform_driver(rockchip_pcie_driver);
 
 MODULE_AUTHOR("Rockchip Inc");

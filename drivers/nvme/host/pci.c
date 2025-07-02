@@ -3017,7 +3017,7 @@ void nvme_remove(struct pci_dev *pdev) //ljz notice
 	nvme_release_prp_pools(dev);
 	nvme_dev_unmap(dev);
 	nvme_uninit_ctrl(&dev->ctrl);
-	printk("LJZ:nvme_remove sucssess\r\n ");
+	printk("LJZ:sdk function nvme_remove  sucssess\r\n ");
 }
 
 //ljz add

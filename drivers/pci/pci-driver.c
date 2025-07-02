@@ -413,8 +413,9 @@ static inline bool pci_device_can_probe(struct pci_dev *pdev)
 	return true;
 }
 #endif
-
-static int pci_device_probe(struct device *dev)
+//ljz modify
+//static int pci_device_probe(struct device *dev)
+int pci_device_probe(struct device *dev)
 {
 	int error;
 	struct pci_dev *pci_dev = to_pci_dev(dev);
@@ -438,8 +439,10 @@ static int pci_device_probe(struct device *dev)
 
 	return error;
 }
+//ljz modify
+//static int pci_device_remove(struct device *dev)
 
-static int pci_device_remove(struct device *dev)
+int pci_device_remove(struct device *dev)
 {
 	struct pci_dev *pci_dev = to_pci_dev(dev);
 	struct pci_driver *drv = pci_dev->driver;
@@ -1640,7 +1643,9 @@ struct bus_type pcie_port_bus_type = {
 EXPORT_SYMBOL_GPL(pcie_port_bus_type);
 #endif
 
-static int __init pci_driver_init(void)
+//ljz modify 
+//static int __init pci_driver_init(void)
+int __init pci_driver_init(void)
 {
 	int ret;
 

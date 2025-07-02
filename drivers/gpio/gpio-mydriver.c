@@ -127,9 +127,7 @@ static ssize_t gpio_value_show(struct device *dev, struct device_attribute *attr
 	return sprintf(buf, "%d\n", gpio_get_value(data->chip.base));
 }
 
-static ssize_t gpio_edge_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "rising\n");
+static ssize_t gpio_edge_show(struct devicLJZ
 }
 
 static ssize_t gpio_edge_store(struct device *dev, struct device_attribute *attr,
@@ -141,7 +139,7 @@ static ssize_t gpio_edge_store(struct device *dev, struct device_attribute *attr
 		return count;
 	}
 	return -EINVAL;
-}
+}LJZ
 
 
 static DEVICE_ATTR(value, 0444, gpio_value_show,#include NULL);
@@ -156,7 +154,7 @@ static int my_gpio_probe(struct platform_device *pdev)
 	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
-
+LJZ
    
     if (!pdev->dev.of_node) {
         dev_err(&pdev->dev, "No device tree node associated\n");
@@ -167,7 +165,7 @@ static int my_gpio_probe(struct platform_device *pdev)
         dev_err(&pdev->dev, "Failed to get GPIO: %d\n", ret);
         return ret;
     }
-
+LJZ
     // 将GPIO转换为中断号
     data->irq_num = gpiod_to_irq(data->gpio);
     if (data->irq_num < 0) {
@@ -180,7 +178,7 @@ static int my_gpio_probe(struct platform_device *pdev)
 
 	// 获取中断号
 	// data->irq_num = platform_gepci_register_driver
-	// 请求中断 tag ：1
+	// 请求中断 tag ：1LJZ
 	// ret = devm_request_irq(&pdev->dev, data->irq_num, my_gpio_handler,
 	// 		      IRQF_TRIGGER_RISING, "re_gpio", data);
 
@@ -206,10 +204,7 @@ static int my_gpio_probe(struct platform_device *pdev)
 		goto err_irq;
 	}
 
-	ret = device_create_file(&pdev->dev, &dev_attr_edge);
-	if (ret) {
-		dev_err(&pdev->dev, "Failed to create edge sysfs\n");
-		goto err_value;
+	ret = device_create_file(&pdev->dev, &dev_attr_edge);LJZ
 	}
 
 
@@ -260,6 +255,13 @@ struct pci_dev *pdev = NULL;
 #if 1
 extern void nvme_remove(struct pci_dev *pdev);
 extern int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id);
+extern struct pci_bus *bus;
+extern int __init pci_driver_init(void);
+
+
+
+extern int pci_device_probe(struct device *dev);
+extern int pci_device_remove(struct device *dev);
 
 static const struct pci_device_id nvme_id_table[] = {
     //{ PCI_DEVICE(0x144d, 0xa821), .driver_data = NVME_QUIRK_SAMSUNG },  // 三星NVMe SSD
@@ -267,64 +269,204 @@ static const struct pci_device_id nvme_id_table[] = {
     { 0 }  // 结束标记
 };
 
+
+
+
+extern struct platform_driver rockchip_pcie_driver;
+
+struct device *get_pcie_device_by_name(const char *name)
+{
+    struct device *dev = NULL;
+    struct bus_type *bus = &platform_bus_type; // 平台设备使用 platform_bus_type
+   
+    // 在总线上按名称查找设备
+    dev = bus_find_device_by_name(bus, NULL, name);
+    if (!dev) {
+        pr_err("Failed to find device: %s\n", name);
+    }
+    return dev;
+}
+
+
+void reload_pcie_device_by_name(void)
+{
+    // Rockchip PCIe 设备的典型名称格式
+    //const char *device_name = "fe160000.pcie";
+	//const char *device_name = "fe180000.pcie";
+	//comform rongping 
+	const char *device_name = "fe150000.pcie";
+    int ret =-ENOMEM;
+    struct device *pcie_dev = get_pcie_device_by_name(device_name);
+    if (!pcie_dev) {
+        printk("LJZ :PCIe device %s not found\n", device_name);
+        return;
+    }
+     printk("LJZ:get devc");
+
+    // 触发设备重新探测
+	//卸载nvme
+		while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
+			printk("LJZ :ALL Found device Vendor=%04x,Device=%04x\r\n",pdev->vendor,pdev->device);
+		 // 仅处理 NVMe 设备（Class Code: 0x010802）
+			if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
+			
+					printk(KERN_INFO "LJZ:REMOVE device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
+					pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
+					PCI_FUNC(pdev->devfn));
+					nvme_remove(pdev);
+			
+
+		    }
+		}
+    //卸载
+	//device_release_driver(pcie_dev);
+
+    ret = device_reprobe(pcie_dev);
+    if (ret)
+        printk("LJZ :PCIe reprobe failed: %d\n", ret);
+    else
+        printk("LJZ :PCIe reprobe successful\n");
+    put_device(pcie_dev); // 释放设备引用
+}
+
+
+
+void reload_pcie_drivers_for_new_devices(void)
+{
+    struct pci_dev *pdev = NULL;
+    struct pci_bus *bus;
+	struct pci_bus *child;
+    int ret =0;
+	struct device *dev ;	
+	//bus_local=bus;
+    /* 加锁防止并发操作 */
+
+
+    //remove
+	reload_pcie_device_by_name();
+    printk("LJZ :finish reloade driver\r\n");
+    pci_lock_rescan_remove();
+	// platform_driver_unregister(&rockchip_pcie_driver);
+	// platform_driver_register(&rockchip_pcie_driver);
+    
+    /* 遍历所有PCI总线 */
+    list_for_each_entry(bus, &pci_root_buses, node) { //从root遍历到node的时候停止
+	      list_for_each_entry(child, &bus->children, node) {
+            pci_rescan_bus(child);
+				list_for_each_entry(pdev, &child->devices, bus_list) {
+				/* 只处理新发现的未绑定驱动的设备 */
+				// if (!pdev->driver && pdev->is_added) { //绑定 并且添加
+				//     struct device *dev = &pdev->dev;                
+			    /* 打印设备信息（调试用）*/
+					printk("LJZ [child] Scanning device: V:%04x D:%04x B:%02x S:%02x F:%02x\n",
+					pdev->vendor, pdev->device,
+					PCI_BUS_NUM(pdev->devfn), 
+					PCI_SLOT(pdev->devfn),
+					PCI_FUNC(pdev->devfn));
+					/* 强制触发驱动匹配流程 */
+					dev = &pdev->dev;
+					ret=device_reprobe(dev); //加载一个新驱动
+				}
+			}
+        // /* 重新扫描当前总线（会检测新设备）*/
+        pci_rescan_bus(bus);                          
+        /* 遍历该总线下的所有设备 */
+        list_for_each_entry(pdev, &bus->devices, bus_list) {
+            /* 只处理新发现的未绑定驱动的设备 */
+            // if (!pdev->driver && pdev->is_added) { //绑定 并且添加
+            //     struct device *dev = &pdev->dev;                
+                /* 打印设备信息（调试用）*/
+                printk("LJZ [root] Scanning device: V:%04x D:%04x B:%02x S:%02x F:%02x\n",
+                   pdev->vendor, pdev->device,
+                   PCI_BUS_NUM(pdev->devfn), 
+                   PCI_SLOT(pdev->devfn),
+                   PCI_FUNC(pdev->devfn));
+                   //卸载nvme
+				   //nvme_remove(pdev);
+                   //卸载PCI
+
+					/* 强制触发驱动匹配流程 */
+					dev = &pdev->dev;
+					ret=device_reprobe(dev);
+				
+            }
+        }
+    pci_unlock_rescan_remove();
+}
+
+
+// void rescan_pcie_sevice(void)
+// {
+// 	struct pci_host_bridge *bridge = pci_find_host_bridge(pci_root_buses);
+// 	if (!bridge) {
+// 		dev_err(&pdev->dev, "Host bridge not found\n");
+// 		return;
+// 	}
+
+// }
+
+
+
+
 static int unload_thread_func(void *data)
 {
-	int ret = -ENOMEM,i=0;
+	//int ret = -ENOMEM;
+	int i=0;
 	printk("LJZ[DRIVER GPIO] in thread\r\n");
-	while(1)
-	{    
+	// while(1)
+	// {    
 		printk("LJZ[DRIVER GPIO] in loop\r\n");
-		for(i=0;i<6;i++)
+		for(i=0;i<3;i++)
 		{
           msleep(5000); // 休眠5秒
-		  printk("delay %dth\r\n",i);
+		  printk("delay-->%dth\r\n",i);
 		}
-		
+        //需要卸载在一次
+        reload_pcie_drivers_for_new_devices();
 		while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
 		// 仅处理 NVMe 设备（Class Code: 0x010802）
-			printk("LJZ :ALL Found device Vendor=%04x\r\n",pdev->vendor);
+			printk("LJZ :ALL Found device Vendor=%04x,Device=%04x\r\n",pdev->vendor,pdev->device);
 			if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
-				printk(KERN_INFO "LJZ:Found NVMe device: Vendor=%04x Device=%04x\n",
-					pdev->vendor, pdev->device);
-                nvme_remove(pdev);
-
-				ret=nvme_probe(pdev,nvme_id_table);
-				if(ret<0)
-				{
-					printk("LJZ :nvme_probe failed\r\n");
-					break;
-				}
-					
+				printk(KERN_INFO "LJZ:Found NVMe device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
+				pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
+                   PCI_FUNC(pdev->devfn));
+				// nvme_remove(pdev);
 			}
 	    }
-	}
+
+		// temp=pci_rescan_bus(bus);
+		// while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
+		// // 仅处理 NVMe 设备（Class Code: 0x010802）
+		// 	printk("LJZ :ALL Found device Vendor=%04x\r\n",pdev->vendor);
+		// 	if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
+		// 	    nvme_remove(pdev);
+		// 		printk("LJZ nvme remove success\r\n");
+		//         temp=pci_rescan_bus(bus);
+		// 		printk("LJZ pci_rescan_bus %d\r\n",temp);
+		// 		//ret=nvme_probe(pdev,nvme_id_table);
+		// 		if(ret<0)
+		// 		{
+		// 			//printk("LJZ :nvme_probe failed\r\n");
+		// 			break;
+		// 		}
+		// 	}
+	   //}
 	return 0; 
 }
 
 #else
 
-struct pci_host_bridge *bridge;
+
+extern struct pci_bus *hot_use_bus;
 static int unload_thread_func(void *data)
 {
 	 unsigned int devfn;
-	
+	for(i=0;i<2;i++)
+	{
+		msleep(5000); // 休眠5秒LJZ
 	printk("LJZ[DRIVER GPIO] in thread\r\n");
+    pci_scan_child_bus(hot_use_bus);
 
-	bridge = pci_alloc_host_bridge(0); //扫描桥接芯片的根设备
-		if (!bridge)
-		{
-		 printk("LJZ:pci_alloc_host_bridge->no found bridge\r\n");
-         return 0;
-		}
-		while(1)
-		{
-			printk("LJZ:pci_host_probe begain\r\n");
-			// pci_host_probe(bridge);
-			for (devfn = 0; devfn < 256; devfn += 8) 
-		    	pci_scan_slot(bridge->bus, devfn);
-			printk("LJZ:pci_host_probe end\r\n");
-			msleep(5000); // 休眠5秒
-		}
     return 0; 
 }
 
@@ -360,8 +502,8 @@ static struct platform_driver my_gpio_driver __refdata = {
 		.of_match_table = my_gpio_of_match,
 	},
 };
-
 module_platform_driver(my_gpio_driver);
+
 // static const struct platform_driver my_gpio_driver = {
 // 	.probe = my_gpio_probe,
 // 	.remove = my_gpio_remove,
@@ -370,6 +512,7 @@ module_platform_driver(my_gpio_driver);
 // 		.of_match_table = my_gpio_of_match,
 // 	},
 // };
+
 MODULE_AUTHOR("BIWIN-LJZ");
 MODULE_DESCRIPTION("GPIO IRQ Driver for MINSSD");
 MODULE_LICENSE("GPL");

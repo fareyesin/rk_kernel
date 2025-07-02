@@ -2621,7 +2621,7 @@ int pci_scan_slot(struct pci_bus *bus, int devfn)
 	if (bus->self && nr)
 		pcie_aspm_init_link_state(bus->self);
     
-	printk("LJZ solt add \r\n");
+	//printk("LJZ solt add \r\n");
 	return nr;
 }
 EXPORT_SYMBOL(pci_scan_slot);
@@ -3003,10 +3003,13 @@ err_out:
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(pci_create_root_bus);
+//ljz add
+struct pci_bus *bus, *child;
+EXPORT_SYMBOL_GPL(bus);
 
 int pci_host_probe(struct pci_host_bridge *bridge)
 {
-	struct pci_bus *bus, *child;
+	//struct pci_bus *bus, *child;
 	int ret;
 
 	ret = pci_scan_root_bus_bridge(bridge);
@@ -3017,6 +3020,7 @@ int pci_host_probe(struct pci_host_bridge *bridge)
 
 	bus = bridge->bus;
 
+	printk("LJZ:get the bus\r\n");
 	/*
 	 * We insert PCI resources into the iomem_resource and
 	 * ioport_resource trees in either pci_bus_claim_resources()
@@ -3114,7 +3118,6 @@ int pci_scan_root_bus_bridge(struct pci_host_bridge *bridge)
 			found = true;
 			break;
 		}
-
 	ret = pci_register_host_bridge(bridge);
 	if (ret < 0)
 		return ret;

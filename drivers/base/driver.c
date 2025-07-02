@@ -168,7 +168,7 @@ int driver_register(struct device_driver *drv)
 		return -EBUSY;
 	}else
 	{
-		//printk("LJZ: [DRIVER_TRACKING]Driver '%s' have been found\r\n", drv->name);
+		printk("LJZ: [DEVICE DRIVER]Driver '%s' have been found\r\n", drv->name);
 	}
 	
 	ret = bus_add_driver(drv);
@@ -180,7 +180,7 @@ int driver_register(struct device_driver *drv)
 		
 	ret = driver_add_groups(drv, drv->groups);
 	if (ret) {
-		//printk("LJZ: '%s' driver_add_groups failed\r\n", drv->name);
+		printk("LJZ: '%s' driver_add_groups failed\r\n", drv->name);
 		bus_remove_driver(drv);
 		return ret;
 	}
