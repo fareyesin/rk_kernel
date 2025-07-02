@@ -343,7 +343,7 @@ void reload_pcie_drivers_for_new_devices(void)
 
 
     //remove
-	reload_pcie_device_by_name();
+	//reload_pcie_device_by_name();
     printk("LJZ :finish reloade driver\r\n");
     pci_lock_rescan_remove();
 	// platform_driver_unregister(&rockchip_pcie_driver);
@@ -358,14 +358,16 @@ void reload_pcie_drivers_for_new_devices(void)
 				// if (!pdev->driver && pdev->is_added) { //绑定 并且添加
 				//     struct device *dev = &pdev->dev;                
 			    /* 打印设备信息（调试用）*/
-					printk("LJZ [child] Scanning device: V:%04x D:%04x B:%02x S:%02x F:%02x\n",
-					pdev->vendor, pdev->device,
-					PCI_BUS_NUM(pdev->devfn), 
-					PCI_SLOT(pdev->devfn),
-					PCI_FUNC(pdev->devfn));
-					/* 强制触发驱动匹配流程 */
-					dev = &pdev->dev;
-					ret=device_reprobe(dev); //加载一个新驱动
+				printk("LJZ [child] Scanning device: V:%04x D:%04x B:%02x S:%02x F:%02x\n",
+				pdev->vendor, pdev->device,
+				PCI_BUS_NUM(pdev->devfn), 
+				PCI_SLOT(pdev->devfn),
+				PCI_FUNC(pdev->devfn));
+				//nvme_remove(pdev);//ljz 
+				/* 强制触发驱动匹配流程 */
+				dev = &pdev->dev;
+				ret=device_reprobe(dev); //加载一个新驱动
+				nvme_probe(pdev,nvme_id_table); //ljz 7/2
 				}
 			}
         // /* 重新扫描当前总线（会检测新设备）*/
@@ -384,10 +386,11 @@ void reload_pcie_drivers_for_new_devices(void)
                    //卸载nvme
 				   //nvme_remove(pdev);
                    //卸载PCI
-
+                    //nvme_remove(pdev); //ljz
 					/* 强制触发驱动匹配流程 */
 					dev = &pdev->dev;
 					ret=device_reprobe(dev);
+					nvme_probe(pdev,nvme_id_table);//ljz 7/2
 				
             }
         }
@@ -406,7 +409,7 @@ void reload_pcie_drivers_for_new_devices(void)
 // }
 
 
-
+extern void pci_stop_and_remove_bus_device(struct pci_dev *dev);
 
 static int unload_thread_func(void *data)
 {
@@ -415,11 +418,26 @@ static int unload_thread_func(void *data)
 	printk("LJZ[DRIVER GPIO] in thread\r\n");
 	// while(1)
 	// {    
-		printk("LJZ[DRIVER GPIO] in loop\r\n");
-		for(i=0;i<3;i++)
+	printk("LJZ[DRIVER GPIO] in loop\r\n");
+	for(i=0;i<4;i++)
+	{
+          msleep(5000); // 休眠5秒
+		  printk("witing _init finish -->%dth...\r\n",i);
+	}
+	while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
+		// 仅处理 NVMe 设备（Class Code: 0x010802）
+			if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
+				printk(KERN_INFO "LJZ:Found and remove NVMe device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
+				pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
+                   PCI_FUNC(pdev->devfn));
+				    pci_stop_and_remove_bus_device(pdev);
+			}
+	    }
+		printk("remove success\r\n");
+		for(i=0;i<5;i++)
 		{
           msleep(5000); // 休眠5秒
-		  printk("delay-->%dth\r\n",i);
+		  printk("delay-->%dth,waiting hot plug...\r\n",i);
 		}
         //需要卸载在一次
         reload_pcie_drivers_for_new_devices();
