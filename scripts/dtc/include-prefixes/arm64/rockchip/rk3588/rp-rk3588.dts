@@ -114,10 +114,10 @@
 //#define GPIO_FUNCTION_FLASH 3
 //#define GPIO_FUNCTION_OUTPUT_CTRL 4
 
-                //fan {   
-                //        gpio_num = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
-                //        gpio_function = <4>;
-                //};
+               // fan {   
+               //        gpio_num = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
+               //       gpio_function = <4>;
+               // };
 
                 led {  
                         gpio_num = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
@@ -143,11 +143,11 @@
                         gpio_num = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;
                         gpio_function = <0>;
                 };
-
-                gpio3c6 {  
-                        gpio_num = <&gpio3 RK_PC6 GPIO_ACTIVE_HIGH>;
-                        gpio_function = <0>;
-                };
+               //ljz modify
+            //    gpio3c6 {  
+            //            gpio_num = <&gpio3 RK_PC6 GPIO_ACTIVE_HIGH>;
+            //            gpio_function = <0>;
+            //     };
 
 
 

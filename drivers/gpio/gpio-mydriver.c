@@ -413,45 +413,137 @@ extern void pci_stop_and_remove_bus_device(struct pci_dev *dev);
 
 static int unload_thread_func(void *data)
 {
-	//int ret = -ENOMEM;
 	int i=0;
-	printk("LJZ[DRIVER GPIO] in thread\r\n");
-	// while(1)
-	// {    
-	printk("LJZ[DRIVER GPIO] in loop\r\n");
-	for(i=0;i<4;i++)
+
+	int  gpio_num=118;
+	int hotflag_in_out_none =0,value1=0,value2=0,ret=0;
+	for(i=0;i<3;i++)
 	{
-          msleep(5000); // 休眠5秒
-		  printk("witing _init finish -->%dth...\r\n",i);
+		msleep(5000); // 休眠5秒
+		printk("witing _init finish -->%dth...\r\n",i);
 	}
-	while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
-		// 仅处理 NVMe 设备（Class Code: 0x010802）
-			if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
-				printk(KERN_INFO "LJZ:Found and remove NVMe device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
-				pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
-                   PCI_FUNC(pdev->devfn));
-				    pci_stop_and_remove_bus_device(pdev);
+
+	printk("LJZ[DRIVER GPIO] in thread\r\n");
+    
+    ret = gpio_request(gpio_num, "custom_label"); 
+	if (ret < 0) {  
+		printk("GPIO申请失败\r\n");
+		return -1;
+	}
+    ret = gpio_direction_input(gpio_num);
+	if (ret < 0) {  
+		printk("输入模式设置失败\r\n");
+		gpio_free(gpio_num); 
+		return -2;
+	}
+
+	while(1)
+	{    
+
+        value1= gpio_get_value(gpio_num); 
+		// printk("GPIO值: %d\n", value1);
+		if(value1==1) //未在位
+		{
+			msleep(50);
+			value2= gpio_get_value(gpio_num); 
+		    if(value1==value2) hotflag_in_out_none=2;
+			else if(value2==0)  hotflag_in_out_none = 0; // 插入
+
+		}else if(value1==0) //在位
+		{
+			msleep(50);
+			value2= gpio_get_value(gpio_num); 
+		    if(value1==value2) hotflag_in_out_none=2;
+			else if(value2==1) hotflag_in_out_none = 1; //拔出
+		}
+    
+       
+		//printk("LJZ[DRIVER GPIO] in loop\r\n");
+        //msleep(1000); // 休眠5秒
+		if(hotflag_in_out_none==1) //拔出
+		{
+
+			// for(i=0;i<5;i++)
+			// {
+			// 	msleep(5000); // 休眠5秒
+			// 	printk("witing _init TAKE OUT-->%dth...\r\n",i);
+			// }
+
+		 	while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
+			// 仅处理 NVMe 设备（Class Code: 0x010802）
+				if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
+					printk(KERN_INFO "LJZ:Found and remove NVMe device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
+					pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
+					PCI_FUNC(pdev->devfn));
+						pci_stop_and_remove_bus_device(pdev);
+				}
 			}
-	    }
-		printk("remove success\r\n");
+
+			printk("********************remove success********************\r\n");
+
+		}else if(hotflag_in_out_none==0) //插入
+		{
+           	// for(i=0;i<5;i++)
+			// {
+			// msleep(5000); // 休眠5秒
+			// printk("delay-->%dth,waiting hot plug...\r\n",i);
+			// }
+
+		   reload_pcie_drivers_for_new_devices();
+			while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
+			// 仅处理 NVMe 设备（Class Code: 0x010802）
+				printk("LJZ :ALL Found device Vendor=%04x,Device=%04x\r\n",pdev->vendor,pdev->device);
+				if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
+					printk(KERN_INFO "LJZ:Found NVMe device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
+					pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
+					PCI_FUNC(pdev->devfn));
+					// nvme_remove(pdev);
+				}
+			}
+			printk("********************hot plug success**********************\r\n");
+		}else 
+		{
+			printk("SSD is static\r\n");
+		}
+#if 0		
 		for(i=0;i<5;i++)
 		{
-          msleep(5000); // 休眠5秒
-		  printk("delay-->%dth,waiting hot plug...\r\n",i);
+			msleep(5000); // 休眠5秒
+			printk("witing _init finish -->%dth...\r\n",i);
 		}
-        //需要卸载在一次
-        reload_pcie_drivers_for_new_devices();
-		while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
-		// 仅处理 NVMe 设备（Class Code: 0x010802）
-			printk("LJZ :ALL Found device Vendor=%04x,Device=%04x\r\n",pdev->vendor,pdev->device);
-			if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
-				printk(KERN_INFO "LJZ:Found NVMe device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
-				pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
-                   PCI_FUNC(pdev->devfn));
-				// nvme_remove(pdev);
-			}
-	    }
 
+		while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
+			// 仅处理 NVMe 设备（Class Code: 0x010802）
+				if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
+					printk(KERN_INFO "LJZ:Found and remove NVMe device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
+					pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
+					PCI_FUNC(pdev->devfn));
+						pci_stop_and_remove_bus_device(pdev);
+				}
+			}
+
+
+			printk("remove success\r\n");
+			for(i=0;i<5;i++)
+			{
+			msleep(5000); // 休眠5秒
+			printk("delay-->%dth,waiting hot plug...\r\n",i);
+			}
+
+			//需要卸载在一次
+			reload_pcie_drivers_for_new_devices();
+			while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
+			// 仅处理 NVMe 设备（Class Code: 0x010802）
+				printk("LJZ :ALL Found device Vendor=%04x,Device=%04x\r\n",pdev->vendor,pdev->device);
+				if (pdev->class == PCI_CLASS_STORAGE_EXPRESS) {
+					printk(KERN_INFO "LJZ:Found NVMe device: Vendor=%04x Device=%04x,B:%02x S:%02x F:%02x\n",
+					pdev->vendor, pdev->device,PCI_BUS_NUM(pdev->devfn), PCI_SLOT(pdev->devfn),
+					PCI_FUNC(pdev->devfn));
+					// nvme_remove(pdev);
+				}
+			}
+#endif
+	}
 		// temp=pci_rescan_bus(bus);
 		// while ((pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev))) {
 		// // 仅处理 NVMe 设备（Class Code: 0x010802）

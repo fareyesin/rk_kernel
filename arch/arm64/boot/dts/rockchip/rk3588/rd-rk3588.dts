@@ -163,7 +163,7 @@
                 };
                 */
                                         /*ljz modify */
-            
+                 /*
                 gpio3c6 {
                         gpio_num = <&gpio3 RK_PC6 GPIO_ACTIVE_LOW>;
                         gpio_function = <2>; 
@@ -173,23 +173,25 @@
                         debounce-interval = <20>;
                         wakeup-source;
                 };
-
+               */
 
         };
 /*add  your code */
     my_device {
     status = "okay";
     compatible = "ljz_ssdirq";
-    interrupt-parent = <&gpio3>;
-    interrupts = <RK_PC6 2>; /* IRQ_TYPE_EDGE_BOTH = 3, but typically 2 is used for edge detection */
-    
-        gpio3c6-interrupt {
-            compatible = "ljz_ssdirq";
-            gpios = <&gpio3 RK_PC6 GPIO_ACTIVE_LOW>;
-            label = "gpio3c6_irq";
-            debounce-interval = <20>;
-            wakeup-source;
-        };
+   
+   // interrupt-parent = <&gpio3>;
+   //interrupts = <RK_PC6 2>; /* IRQ_TYPE_EDGE_BOTH = 3, but typically 2 is used for edge detection */
+   // 
+   //     gpio3c6-interrupt {
+   //         compatible = "ljz_ssdirq";
+   //         gpios = <&gpio3 RK_PC6 GPIO_ACTIVE_LOW>;
+   //         label = "gpio3c6_irq";
+   //         debounce-interval = <20>;
+   //         wakeup-source;
+   //    };
+        
     };
 
 /*endpoint*/
